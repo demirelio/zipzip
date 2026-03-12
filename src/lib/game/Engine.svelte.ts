@@ -24,17 +24,29 @@ export class Engine {
   }
 
   start() {
+    if (this.status === GameStatus.PLAYING) return;
+    
+    if (browser && this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
     this.status = GameStatus.PLAYING;
     this.score = 0;
     this.obstacles = [];
     this.player.reset();
+    this.lastSpawnTime = 0;
+    this.spawnInterval = 1500;
+    
     if (browser) {
       this.lastTime = performance.now();
-      this.loop(this.lastTime);
+      this.animationFrameId = requestAnimationFrame(this.loop);
     }
   }
 
   gameOver() {
+    if (this.status === GameStatus.GAMEOVER) return;
+    
     this.status = GameStatus.GAMEOVER;
     if (this.score > this.highScore) {
       this.highScore = this.score;
@@ -49,11 +61,21 @@ export class Engine {
   }
 
   loop = (currentTime: number) => {
-    if (this.status !== GameStatus.PLAYING) return;
+    if (this.status !== GameStatus.PLAYING) {
+      this.animationFrameId = null;
+      return;
+    }
+    
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
+    
     this.update(deltaTime);
-    this.animationFrameId = requestAnimationFrame(this.loop);
+    
+    if (this.status === GameStatus.PLAYING) {
+      this.animationFrameId = requestAnimationFrame(this.loop);
+    } else {
+      this.animationFrameId = null;
+    }
   };
 
   update(deltaTime: number) {
